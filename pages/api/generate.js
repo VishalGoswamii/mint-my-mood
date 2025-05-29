@@ -22,9 +22,10 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        prompt: `an abstract illustration of the emotion: ${mood}`,
-        n: 1,
-        size: '512x512',
+  prompt: `an abstract illustration of the emotion: ${mood}`,
+  n: 1,
+  size: '512x512',
+  model: 'dall-e-3'  // ✅ required by OpenAI now
       }),
     });
 
