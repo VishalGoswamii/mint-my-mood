@@ -1,32 +1,53 @@
 export default async function handler(req, res) {
+  console.log('API /api/generate called');  // Log function entry
+
   if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
     return res.status(405).json({ error: 'Only POST requests allowed' });
   }
 
-  const { mood } = req.body;
+  try {
+    const { mood } = req.body;
+    console.log('Received mood:', mood);
 
-  if (!mood) {
-    return res.status(400).json({ error: 'Mood is required' });
+    if (!mood) {
+      console.log('No mood provided');
+      return res.status(400).json({ error: 'Mood is required' });
+    }
+
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        prompt: `an abstract illustration of the emotion: ${mood}`,
+        n: 1,
+        size: '512x512',
+      }),
+    });
+
+    console.log('OpenAI response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log('OpenAI API error:', errorData);
+      return res.status(response.status).json({ error: errorData.error?.message || 'OpenAI API error' });
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response data:', data);
+
+    if (!data.data || data.data.length === 0) {
+      console.log('No image data returned');
+      return res.status(500).json({ error: 'No image data returned' });
+    }
+
+    return res.status(200).json({ imageUrl: data.data[0].url });
+
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      prompt: `an abstract illustration of the emotion: ${mood}`,
-      n: 1,
-      size: '512x512',
-    }),
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    return res.status(500).json({ error: data.error.message });
-  }
-
-  return res.status(200).json({ imageUrl: data.data[0].url });
 }
