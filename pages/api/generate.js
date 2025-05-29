@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "db21e45a03fdfd5b76fdb3e8ed52fca0aeb1b06a0c2e29ca4cc80f6dfc1fa1c7", // Stable Diffusion v1.5
+        version: "ac732df8", // Stable Diffusion v1.5
         input: {
           prompt: `a digital art representing the mood: ${mood}, in abstract colorful style`
         },
