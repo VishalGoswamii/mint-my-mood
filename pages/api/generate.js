@@ -1,55 +1,59 @@
-export default async function handler(req, res) {
-  console.log('API /api/generate called');  // Log function entry
+// pages/api/generate.js
 
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    console.log('Invalid method:', req.method);
-    return res.status(405).json({ error: 'Only POST requests allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { mood } = req.body;
+
+  if (!mood || typeof mood !== 'string') {
+    return res.status(400).json({ error: 'Mood is required and must be a string' });
   }
 
   try {
-    const { mood } = req.body;
+    console.log('API /api/generate called');
     console.log('Received mood:', mood);
 
-    if (!mood) {
-      console.log('No mood provided');
-      return res.status(400).json({ error: 'Mood is required' });
-    }
-
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
+    const replicateResponse = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Authorization": `Token ${process.env.REPLICATE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-  prompt: `a colorful digital art representing the feeling of being ${mood}, in an abstract, artistic style`,
-  n: 1,
-  size: '1024x1024',
-  model: 'dall-e-3',
-}),
-
+        version: "db21e45a03fdfd5b76fdb3e8ed52fca0aeb1b06a0c2e29ca4cc80f6dfc1fa1c7", // Stable Diffusion v1.5
+        input: {
+          prompt: `a digital art representing the mood: ${mood}, in abstract colorful style`
+        },
+      }),
     });
 
-    console.log('OpenAI response status:', response.status);
+    console.log('Replicate response status:', replicateResponse.status);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.log('OpenAI API error:', errorData);
-      return res.status(response.status).json({ error: errorData.error?.message || 'OpenAI API error' });
+    if (!replicateResponse.ok) {
+      const errorText = await replicateResponse.text();
+      console.error('Replicate API error:', errorText);
+      return res.status(replicateResponse.status).json({ error: errorText });
     }
 
-    const data = await response.json();
-    console.log('OpenAI response data:', data);
+    const json = await replicateResponse.json();
+    console.log('Replicate response data:', json);
 
-    if (!data.data || data.data.length === 0) {
-      console.log('No image data returned');
-      return res.status(500).json({ error: 'No image data returned' });
+    // Wait for the prediction to complete (optional: you may want to poll or use webhooks for production)
+    // For simplicity, assume prediction is done instantly (or check status)
+
+    // The image URL might be inside json.prediction.output array, or in json.output (depending on API version)
+    const imageUrl = json?.prediction?.output?.[0] || json?.output?.[0];
+
+    if (!imageUrl) {
+      return res.status(500).json({ error: 'No image URL found in Replicate response' });
     }
 
-    return res.status(200).json({ imageUrl: data.data[0].url });
+    return res.status(200).json({ imageUrl });
 
   } catch (error) {
     console.error('Unexpected error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
