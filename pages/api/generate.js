@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "ac732df8", // Stable Diffusion v1.5
+        version: "ac732df8", // Stable Diffusion latest version
         input: {
           prompt: `a digital art representing the mood: ${mood}, in abstract colorful style`
         },
@@ -40,11 +40,7 @@ export default async function handler(req, res) {
     const json = await replicateResponse.json();
     console.log('Replicate response data:', json);
 
-    // Wait for the prediction to complete (optional: you may want to poll or use webhooks for production)
-    // For simplicity, assume prediction is done instantly (or check status)
-
-    // The image URL might be inside json.prediction.output array, or in json.output (depending on API version)
-    const imageUrl = json?.prediction?.output?.[0] || json?.output?.[0];
+    const imageUrl = json?.output?.[0];
 
     if (!imageUrl) {
       return res.status(500).json({ error: 'No image URL found in Replicate response' });
